@@ -1,0 +1,342 @@
+openapi: 3.1.0
+info:
+  title: AI Placemat API Contract
+  version: 0.1.0
+  description: >
+    Shared API contract for the minimal backend version. JSON fields use
+    camelCase. The current backend scope includes settings, meal, report,
+    and trend only.
+paths:
+  /settings:
+    get:
+      summary: Get reminder settings for an anonymous user
+      parameters:
+        - in: query
+          name: anonymousUserId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reminder settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderSettings'
+    put:
+      summary: Create or update reminder settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReminderSettingsUpdate'
+      responses:
+        '200':
+          description: Updated reminder settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderSettings'
+  /meal/upload:
+    post:
+      summary: Upload one meal session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealUploadRequest'
+      responses:
+        '200':
+          description: Upload accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealUploadResponse'
+  /meal/{mealId}:
+    get:
+      summary: Get one uploaded meal session
+      parameters:
+        - in: path
+          name: mealId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: anonymousUserId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Meal detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealDetail'
+  /report/{mealId}:
+    get:
+      summary: Get one meal report
+      parameters:
+        - in: path
+          name: mealId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: anonymousUserId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Meal report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealReport'
+  /trend/7d:
+    get:
+      summary: Get seven-day trend summary
+      parameters:
+        - in: query
+          name: anonymousUserId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Seven-day trend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendSummary'
+components:
+  schemas:
+    QuietHours:
+      type: object
+      required:
+        - enabled
+        - start
+        - end
+      properties:
+        enabled:
+          type: boolean
+        start:
+          type: string
+          description: Local time string in HH:mm format.
+        end:
+          type: string
+          description: Local time string in HH:mm format.
+    ReminderSettings:
+      type: object
+      required:
+        - anonymousUserId
+        - reminderEnabled
+        - reminderFrequency
+        - reminderText
+        - voiceEnabled
+        - quietHours
+        - updatedAt
+      properties:
+        anonymousUserId:
+          type: string
+        reminderEnabled:
+          type: boolean
+        reminderFrequency:
+          type: integer
+          description: Reminder cooldown or frequency in seconds.
+        reminderText:
+          type: string
+        voiceEnabled:
+          type: boolean
+        quietHours:
+          $ref: '#/components/schemas/QuietHours'
+        updatedAt:
+          type: string
+          format: date-time
+        syncState:
+          type: string
+          enum:
+            - synced
+    ReminderSettingsUpdate:
+      type: object
+      required:
+        - anonymousUserId
+        - reminderEnabled
+        - reminderFrequency
+        - reminderText
+        - voiceEnabled
+        - quietHours
+      properties:
+        anonymousUserId:
+          type: string
+        reminderEnabled:
+          type: boolean
+        reminderFrequency:
+          type: integer
+        reminderText:
+          type: string
+        voiceEnabled:
+          type: boolean
+        quietHours:
+          $ref: '#/components/schemas/QuietHours'
+    MealSample:
+      type: object
+      required:
+        - ts
+        - weightGram
+      properties:
+        ts:
+          type: string
+          format: date-time
+        weightGram:
+          type: number
+    MealEvent:
+      type: object
+      required:
+        - ts
+        - eventType
+      properties:
+        ts:
+          type: string
+          format: date-time
+        eventType:
+          type: string
+        value:
+          type:
+            - string
+            - 'null'
+    MealUploadRequest:
+      type: object
+      required:
+        - anonymousUserId
+        - mealId
+        - startTime
+        - endTime
+        - durationSec
+        - intakeGrams
+        - avgSpeed
+        - peakSpeed
+        - reminderCount
+      properties:
+        anonymousUserId:
+          type: string
+        mealId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        durationSec:
+          type: integer
+        intakeGrams:
+          type: number
+        avgSpeed:
+          type: number
+        peakSpeed:
+          type: number
+        reminderCount:
+          type: integer
+        samples:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealSample'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealEvent'
+    MealUploadResponse:
+      type: object
+      required:
+        - anonymousUserId
+        - mealId
+        - status
+        - reportStatus
+        - trendStatus
+      properties:
+        anonymousUserId:
+          type: string
+        mealId:
+          type: string
+        status:
+          type: string
+        reportStatus:
+          type: string
+        trendStatus:
+          type: string
+    MealDetail:
+      allOf:
+        - $ref: '#/components/schemas/MealUploadRequest'
+    MealReport:
+      type: object
+      required:
+        - mealId
+        - durationSec
+        - intakeGrams
+        - avgSpeed
+        - peakSpeed
+        - reminderCount
+        - summaryText
+      properties:
+        mealId:
+          type: string
+        durationSec:
+          type: integer
+        intakeGrams:
+          type: number
+        avgSpeed:
+          type: number
+        peakSpeed:
+          type: number
+        reminderCount:
+          type: integer
+        summaryText:
+          type: string
+        aiSummaryText:
+          type:
+            - string
+            - 'null'
+        suggestions:
+          type: array
+          items:
+            type: string
+        reportSource:
+          type: string
+          enum:
+            - ruleOnly
+            - rulePlusAiStub
+    TrendSummary:
+      type: object
+      required:
+        - anonymousUserId
+        - avgSpeed
+        - fastMealCount
+        - improvementRate
+        - summaryText
+      properties:
+        anonymousUserId:
+          type: string
+        avgSpeed:
+          type: number
+        fastMealCount:
+          type: integer
+        improvementRate:
+          type: number
+        summaryText:
+          type: string
+        aiSummaryText:
+          type:
+            - string
+            - 'null'
+        windowDays:
+          type: integer
+          default: 7
+        source:
+          type: string
+          enum:
+            - ruleOnly
+            - rulePlusAiStub
